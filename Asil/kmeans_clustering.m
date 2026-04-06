@@ -1,6 +1,22 @@
 
 clear; clc; close all;
 
+% Configuración para figuras de calidad académica
+set(0, 'DefaultAxesFontSize', 12);
+set(0, 'DefaultAxesFontName', 'Times New Roman');
+set(0, 'DefaultTextFontSize', 12);
+set(0, 'DefaultTextFontName', 'Times New Roman');
+set(0, 'DefaultLineLineWidth', 1.5);
+set(0, 'DefaultAxesGridLineStyle', ':');
+set(0, 'DefaultAxesXGrid', 'on');
+set(0, 'DefaultAxesYGrid', 'on');
+set(0, 'DefaultAxesGridColor', [0.5 0.5 0.5]);
+set(0, 'DefaultAxesGridAlpha', 0.3);
+set(0, 'DefaultAxesXColor', [0 0 0]);
+set(0, 'DefaultAxesYColor', [0 0 0]);
+set(0, 'DefaultTextColor', [0 0 0]);
+set(0, 'DefaultAxesTitleFontWeight', 'bold');
+
 rng(42);
 
 resultsDir = 'results';
@@ -161,8 +177,9 @@ results.bestConfig = overallBestConfig;
 
 fprintf('\n=== Generando Gráficos ===\n');
 
-figure('Position', [100, 100, 800, 600]);
-hold on;
+fig = figure('Color', 'white', 'Position', [100, 100, 800, 600]);
+ax = axes('Parent', fig);
+hold(ax, 'on');
 colors = lines(length(distanceMetrics));
 for dIdx = 1:length(distanceMetrics)
     accVals = zeros(length(K_values), 1);
@@ -173,21 +190,29 @@ for dIdx = 1:length(distanceMetrics)
             accVals(kIdx) = NaN;
         end
     end
-    plot(K_values, accVals, '-o', 'Color', colors(dIdx,:), ...
-        'LineWidth', 2, 'MarkerSize', 8);
+    plot(ax, K_values, accVals, '-o', 'Color', colors(dIdx,:), ...
+        'LineWidth', 1.5, 'MarkerSize', 8, 'MarkerFaceColor', colors(dIdx,:));
 end
-xlabel('Número de Clústeres (K)');
-ylabel('Precisión de Clasificación (%)');
-title('K-means: Precisión vs Número de Clústeres');
-legend(distanceMetrics, 'Location', 'best');
-grid on;
-xlim([min(K_values)-5, max(K_values)+5]);
-ylim([min(accVals)-5, max(accVals)+5]);
-saveas(gcf, fullfile(figuresDir, 'kmeans_precision_vs_k.png'));
+xlabel(ax, 'Número de Clústeres (K)', 'FontSize', 13, 'FontWeight', 'bold');
+ylabel(ax, 'Precisión de Clasificación (%)', 'FontSize', 13, 'FontWeight', 'bold');
+title(ax, 'K-means: Precisión vs Número de Clústeres', 'FontSize', 14, 'FontWeight', 'bold');
+legend(ax, distanceMetrics, 'Location', 'best', 'FontSize', 11);
+grid(ax, 'on');
+set(ax, 'Color', 'white');
+set(ax, 'Box', 'on');
+set(ax, 'LineWidth', 1);
+set(ax, 'XColor', [0 0 0]);
+set(ax, 'YColor', [0 0 0]);
+set(ax, 'GridColor', [0.5 0.5 0.5]);
+set(ax, 'MinorGridColor', [0.7 0.7 0.7]);
+xlim(ax, [min(K_values)-5, max(K_values)+5]);
+ylim(ax, [min(accVals)-5, max(accVals)+5]);
+saveas(fig, fullfile(figuresDir, 'kmeans_precision_vs_k.png'));
 fprintf('  Guardado: precision_vs_k.png\n');
 
-figure('Position', [100, 100, 800, 600]);
-hold on;
+fig = figure('Color', 'white', 'Position', [100, 100, 800, 600]);
+ax = axes('Parent', fig);
+hold(ax, 'on');
 inertiaVals = zeros(length(K_values), 1);
 for kIdx = 1:length(K_values)
     if ~isempty(results.inertia{kIdx, 1})
@@ -196,16 +221,25 @@ for kIdx = 1:length(K_values)
         inertiaVals(kIdx) = NaN;
     end
 end
-plot(K_values, inertiaVals, '-o', 'LineWidth', 2, 'MarkerSize', 8);
-xlabel('Número de Clústeres (K)');
-ylabel('Inercia (Suma de Cuadrados Intra-clúster)');
-title('K-means: Inercia vs K');
-grid on;
-saveas(gcf, fullfile(figuresDir, 'kmeans_inercia_vs_k.png'));
+plot(ax, K_values, inertiaVals, '-o', 'Color', [0.85 0.33 0.1], ...
+    'LineWidth', 1.5, 'MarkerSize', 8, 'MarkerFaceColor', [0.85 0.33 0.1]);
+xlabel(ax, 'Número de Clústeres (K)', 'FontSize', 13, 'FontWeight', 'bold');
+ylabel(ax, 'Inercia (Suma de Cuadrados Intra-clúster)', 'FontSize', 13, 'FontWeight', 'bold');
+title(ax, 'K-means: Inercia vs K', 'FontSize', 14, 'FontWeight', 'bold');
+grid(ax, 'on');
+set(ax, 'Color', 'white');
+set(ax, 'Box', 'on');
+set(ax, 'LineWidth', 1);
+set(ax, 'XColor', [0 0 0]);
+set(ax, 'YColor', [0 0 0]);
+set(ax, 'GridColor', [0.5 0.5 0.5]);
+set(ax, 'MinorGridColor', [0.7 0.7 0.7]);
+saveas(fig, fullfile(figuresDir, 'kmeans_inercia_vs_k.png'));
 fprintf('  Guardado: inercia_vs_k.png\n');
 
-figure('Position', [100, 100, 800, 600]);
-hold on;
+fig = figure('Color', 'white', 'Position', [100, 100, 800, 600]);
+ax = axes('Parent', fig);
+hold(ax, 'on');
 for dIdx = 1:length(distanceMetrics)
     nmiVals = zeros(length(K_values), 1);
     for kIdx = 1:length(K_values)
@@ -215,18 +249,26 @@ for dIdx = 1:length(distanceMetrics)
             nmiVals(kIdx) = NaN;
         end
     end
-    plot(K_values, nmiVals, '-s', 'Color', colors(dIdx,:), ...
-        'LineWidth', 2, 'MarkerSize', 8);
+    plot(ax, K_values, nmiVals, '-s', 'Color', colors(dIdx,:), ...
+        'LineWidth', 1.5, 'MarkerSize', 8, 'MarkerFaceColor', colors(dIdx,:));
 end
-xlabel('Número de Clústeres (K)');
-ylabel('Información Mutua Normalizada (NMI)');
-title('K-means: Calidad de Agrupamiento (NMI vs K)');
-legend(distanceMetrics, 'Location', 'best');
-grid on;
-saveas(gcf, fullfile(figuresDir, 'kmeans_nmi_vs_k.png'));
+xlabel(ax, 'Número de Clústeres (K)', 'FontSize', 13, 'FontWeight', 'bold');
+ylabel(ax, 'Información Mutua Normalizada (NMI)', 'FontSize', 13, 'FontWeight', 'bold');
+title(ax, 'K-means: Calidad de Agrupamiento (NMI vs K)', 'FontSize', 14, 'FontWeight', 'bold');
+legend(ax, distanceMetrics, 'Location', 'best', 'FontSize', 11);
+grid(ax, 'on');
+set(ax, 'Color', 'white');
+set(ax, 'Box', 'on');
+set(ax, 'LineWidth', 1);
+set(ax, 'XColor', [0 0 0]);
+set(ax, 'YColor', [0 0 0]);
+set(ax, 'GridColor', [0.5 0.5 0.5]);
+set(ax, 'MinorGridColor', [0.7 0.7 0.7]);
+saveas(fig, fullfile(figuresDir, 'kmeans_nmi_vs_k.png'));
 fprintf('  Guardado: nmi_vs_k.png\n');
 
-figure('Position', [100, 100, 900, 700]);
+fig = figure('Color', 'white', 'Position', [100, 100, 900, 700]);
+ax = axes('Parent', fig);
 accMatrix = zeros(length(K_values), length(distanceMetrics));
 for kIdx = 1:length(K_values)
     for dIdx = 1:length(distanceMetrics)
@@ -235,28 +277,38 @@ for kIdx = 1:length(K_values)
         end
     end
 end
-imagesc(accMatrix);
-colorbar;
-xlabel('Métrica de Distancia');
-ylabel('Número de Clústeres (K)');
-title('Mapa de Calor de Precisión de Clasificación');
-xticks(1:length(distanceMetrics));
-xticklabels(distanceMetrics);
-xtickangle(45);
-yticks(1:length(K_values));
-yticklabels(string(K_values));
+imagesc(ax, accMatrix);
+c = colorbar(ax);
+c.Label.String = 'Precisión (%)';
+c.Label.FontSize = 12;
+c.Label.FontWeight = 'bold';
+xlabel(ax, 'Métrica de Distancia', 'FontSize', 13, 'FontWeight', 'bold');
+ylabel(ax, 'Número de Clústeres (K)', 'FontSize', 13, 'FontWeight', 'bold');
+title(ax, 'Mapa de Calor de Precisión de Clasificación', 'FontSize', 14, 'FontWeight', 'bold');
+xticks(ax, 1:length(distanceMetrics));
+xticklabels(ax, distanceMetrics);
+xtickangle(ax, 45);
+yticks(ax, 1:length(K_values));
+yticklabels(ax, string(K_values));
+set(ax, 'Color', 'white');
+set(ax, 'Box', 'on');
+set(ax, 'LineWidth', 1);
+set(ax, 'XColor', [0 0 0]);
+set(ax, 'YColor', [0 0 0]);
+set(ax, 'GridColor', [0.5 0.5 0.5]);
+set(ax, 'MinorGridColor', [0.7 0.7 0.7]);
 for kIdx = 1:length(K_values)
     for dIdx = 1:length(distanceMetrics)
-        text(dIdx, kIdx, sprintf('%.1f', accMatrix(kIdx, dIdx)), ...
-            'HorizontalAlignment', 'center', 'Color', ...
-            'k');
+        text(ax, dIdx, kIdx, sprintf('%.1f', accMatrix(kIdx, dIdx)), ...
+            'HorizontalAlignment', 'center', 'Color', 'k', 'FontSize', 10);
     end
 end
-saveas(gcf, fullfile(figuresDir, 'kmeans_precision_mapa_calor.png'));
+saveas(fig, fullfile(figuresDir, 'kmeans_precision_mapa_calor.png'));
 fprintf('  Guardado: precision_mapa_calor.png\n');
 
-figure('Position', [100, 100, 800, 600]);
-hold on;
+fig = figure('Color', 'white', 'Position', [100, 100, 800, 600]);
+ax = axes('Parent', fig);
+hold(ax, 'on');
 for dIdx = 1:length(distanceMetrics)
     timeVals = zeros(length(K_values), 1);
     for kIdx = 1:length(K_values)
@@ -266,15 +318,22 @@ for dIdx = 1:length(distanceMetrics)
             timeVals(kIdx) = NaN;
         end
     end
-    plot(K_values, timeVals, '-^', 'Color', colors(dIdx,:), ...
-        'LineWidth', 2, 'MarkerSize', 8);
+    plot(ax, K_values, timeVals, '-^', 'Color', colors(dIdx,:), ...
+        'LineWidth', 1.5, 'MarkerSize', 8, 'MarkerFaceColor', colors(dIdx,:));
 end
-xlabel('Número de Clústeres (K)');
-ylabel('Tiempo de Cómputo (segundos)');
-title('K-means: Tiempo de Cómputo vs K');
-legend(distanceMetrics, 'Location', 'best');
-grid on;
-saveas(gcf, fullfile(figuresDir, 'kmeans_tiempo_vs_k.png'));
+xlabel(ax, 'Número de Clústeres (K)', 'FontSize', 13, 'FontWeight', 'bold');
+ylabel(ax, 'Tiempo de Cómputo (segundos)', 'FontSize', 13, 'FontWeight', 'bold');
+title(ax, 'K-means: Tiempo de Cómputo vs K', 'FontSize', 14, 'FontWeight', 'bold');
+legend(ax, distanceMetrics, 'Location', 'best', 'FontSize', 11);
+grid(ax, 'on');
+set(ax, 'Color', 'white');
+set(ax, 'Box', 'on');
+set(ax, 'LineWidth', 1);
+set(ax, 'XColor', [0 0 0]);
+set(ax, 'YColor', [0 0 0]);
+set(ax, 'GridColor', [0.5 0.5 0.5]);
+set(ax, 'MinorGridColor', [0.7 0.7 0.7]);
+saveas(fig, fullfile(figuresDir, 'kmeans_tiempo_vs_k.png'));
 fprintf('  Guardado: tiempo_vs_k.png\n');
 
 fprintf('\n=== Guardando Resultados ===\n');
