@@ -69,14 +69,13 @@ fprintf('Tamaño de mini-lote: %d\n', miniBatchSize);
 results = struct();
 results.bottleneckSizes = bottleneckSizes;
 results.epochValues = epochValues;
-results.accuracy = cell(length(bottleneckSizes), length(epochValues));
 results.reconMSE = cell(length(bottleneckSizes), length(epochValues));
 results.trainTime = cell(length(bottleneckSizes), length(epochValues));
 results.bestConfig = [];
 
 fprintf('\n=== Ejecutando Experimentos de Autoencoder ===\n');
 
-overallBestAccuracy = 0;
+overallBestMSE = inf;
 overallBestConfig = struct();
 
 for bIdx = 1:length(bottleneckSizes)
@@ -101,29 +100,22 @@ for bIdx = 1:length(bottleneckSizes)
             reconstructed_test = decode(autoenc, encoded_test);
             reconMSE = mean((X_test - reconstructed_test).^2, 'all');
 
-            classifier = fitcecoc(encoded_train', Y_train);
-            preds = predict(classifier, encoded_test');
-            accuracy = mean(preds == Y_test) * 100;
+            fprintf('MSE Recon: %.4f\n', reconMSE);
 
-            fprintf('Prec: %.2f%%, MSE Recon: %.4f\n', accuracy, reconMSE);
-
-            results.accuracy{bIdx, eIdx} = accuracy;
             results.reconMSE{bIdx, eIdx} = reconMSE;
             results.trainTime{bIdx, eIdx} = trainTime;
 
-            if accuracy > overallBestAccuracy
-                overallBestAccuracy = accuracy;
+            if reconMSE < overallBestMSE
+                overallBestMSE = reconMSE;
                 overallBestConfig.bottleneck = bottleneck;
                 overallBestConfig.epochs = epochs;
-                overallBestConfig.accuracy = accuracy;
-                overallBestConfig.classifier = classifier;
+                overallBestConfig.reconMSE = reconMSE;
                 overallBestConfig.autoencoder = autoenc;
                 overallBestConfig.encoded_test = encoded_test;
             end
 
         catch ME
             fprintf('FAILED: %s\n', ME.message);
-            results.accuracy{bIdx, eIdx} = NaN;
             results.reconMSE{bIdx, eIdx} = NaN;
             results.trainTime{bIdx, eIdx} = NaN;
         end
@@ -131,45 +123,14 @@ for bIdx = 1:length(bottleneckSizes)
 end
 
 fprintf('\n=== Mejor Configuración ===\n');
-fprintf('Bottleneck = %d, Epochs = %d, Precisión = %.2f%%\n', ...
-    overallBestConfig.bottleneck, overallBestConfig.epochs, overallBestConfig.accuracy);
+fprintf('Bottleneck = %d, Epochs = %d, MSE Reconstrucción = %.4f\n', ...
+    overallBestConfig.bottleneck, overallBestConfig.epochs, overallBestConfig.reconMSE);
 
 results.bestConfig = overallBestConfig;
 
 fprintf('\n=== Generando Gráficos ===\n');
 
-fig = figure('Color', 'white', 'Position', [100, 100, 800, 600]);
-ax = axes('Parent', fig);
-hold(ax, 'on');
 colors = lines(length(epochValues));
-for eIdx = 1:length(epochValues)
-    accVals = zeros(length(bottleneckSizes), 1);
-    for bIdx = 1:length(bottleneckSizes)
-        if ~isempty(results.accuracy{bIdx, eIdx}) && ~isnan(results.accuracy{bIdx, eIdx})
-            accVals(bIdx) = results.accuracy{bIdx, eIdx};
-        else
-            accVals(bIdx) = NaN;
-        end
-    end
-    plot(ax, bottleneckSizes, accVals, '-o', 'Color', colors(eIdx,:), ...
-        'LineWidth', 1.5, 'MarkerSize', 8, 'MarkerFaceColor', colors(eIdx,:), ...
-        'DisplayName', sprintf('%d epochs', epochValues(eIdx)));
-end
-xlabel(ax, 'Tamaño del Bottleneck', 'FontSize', 13, 'FontWeight', 'bold');
-ylabel(ax, 'Precisión de Clasificación (%)', 'FontSize', 13, 'FontWeight', 'bold');
-title(ax, 'Autoencoder: Precisión vs Tamaño del Bottleneck', 'FontSize', 14, 'FontWeight', 'bold');
-legend(ax, 'Location', 'best', 'FontSize', 11);
-grid(ax, 'on');
-set(ax, 'Color', 'white');
-set(ax, 'Box', 'on');
-set(ax, 'LineWidth', 1);
-set(ax, 'XColor', [0 0 0]);
-set(ax, 'YColor', [0 0 0]);
-set(ax, 'GridColor', [0.5 0.5 0.5]);
-set(ax, 'MinorGridColor', [0.7 0.7 0.7]);
-xlim(ax, [min(bottleneckSizes)-5, max(bottleneckSizes)+5]);
-saveas(fig, fullfile(figuresDir, 'autoencoder_precision_vs_bottleneck.png'));
-fprintf('  Guardado: precision_vs_bottleneck.png\n');
 
 fig = figure('Color', 'white', 'Position', [100, 100, 800, 600]);
 ax = axes('Parent', fig);
@@ -201,46 +162,6 @@ set(ax, 'GridColor', [0.5 0.5 0.5]);
 set(ax, 'MinorGridColor', [0.7 0.7 0.7]);
 saveas(fig, fullfile(figuresDir, 'autoencoder_mse_reconstruccion.png'));
 fprintf('  Guardado: mse_reconstruccion.png\n');
-
-fig = figure('Color', 'white', 'Position', [100, 100, 900, 700]);
-ax = axes('Parent', fig);
-accMatrix = zeros(length(bottleneckSizes), length(epochValues));
-for bIdx = 1:length(bottleneckSizes)
-    for eIdx = 1:length(epochValues)
-        if ~isempty(results.accuracy{bIdx, eIdx}) && ~isnan(results.accuracy{bIdx, eIdx})
-            accMatrix(bIdx, eIdx) = results.accuracy{bIdx, eIdx};
-        end
-    end
-end
-imagesc(ax, accMatrix);
-c = colorbar(ax);
-c.Label.String = 'Precisión (%)';
-c.Label.FontSize = 12;
-c.Label.FontWeight = 'bold';
-xlabel(ax, 'Epochs', 'FontSize', 13, 'FontWeight', 'bold');
-ylabel(ax, 'Tamaño del Bottleneck', 'FontSize', 13, 'FontWeight', 'bold');
-title(ax, 'Mapa de Calor de Precisión de Clasificación', 'FontSize', 14, 'FontWeight', 'bold');
-xticks(ax, 1:length(epochValues));
-xticklabels(ax, string(epochValues));
-yticks(ax, 1:length(bottleneckSizes));
-yticklabels(ax, string(bottleneckSizes));
-set(ax, 'Color', 'white');
-set(ax, 'Box', 'on');
-set(ax, 'LineWidth', 1);
-set(ax, 'XColor', [0 0 0]);
-set(ax, 'YColor', [0 0 0]);
-set(ax, 'GridColor', [0.5 0.5 0.5]);
-set(ax, 'MinorGridColor', [0.7 0.7 0.7]);
-for bIdx = 1:length(bottleneckSizes)
-    for eIdx = 1:length(epochValues)
-        if ~isnan(accMatrix(bIdx, eIdx))
-            text(ax, eIdx, bIdx, sprintf('%.1f', accMatrix(bIdx, eIdx)), ...
-                'HorizontalAlignment', 'center', 'Color', 'k', 'FontSize', 10);
-        end
-    end
-end
-saveas(fig, fullfile(figuresDir, 'autoencoder_precision_mapa_calor.png'));
-fprintf('  Guardado: precision_mapa_calor.png\n');
 
 fig = figure('Color', 'white', 'Position', [100, 100, 800, 600]);
 ax = axes('Parent', fig);
@@ -339,6 +260,6 @@ fprintf('========================================\n');
 fprintf('Mejor configuración:\n');
 fprintf('  Bottleneck = %d\n', overallBestConfig.bottleneck);
 fprintf('  Epochs = %d\n', overallBestConfig.epochs);
-fprintf('  Precisión = %.2f%%\n', overallBestConfig.accuracy);
+fprintf('  MSE Reconstrucción = %.4f\n', overallBestConfig.reconMSE);
 fprintf('\nGráficos guardados en: %s\n', figuresDir);
 fprintf('========================================\n');
